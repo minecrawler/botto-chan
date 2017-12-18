@@ -1,0 +1,7 @@
+[package]
+name = "botto-chan"
+version = "0.1.0"
+authors = ["Marco Alka <me@marco-alka.de>"]
+
+[dependencies]
+discord = "0.8"
