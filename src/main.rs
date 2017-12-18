@@ -1,18 +1,43 @@
+#![recursion_limit = "1024"]
+
 extern crate discord;
+#[macro_use] extern crate error_chain;
+extern crate ron;
+#[macro_use] extern crate serde;
+
+mod config;
+mod errors { error_chain!{} }
+
+use std::fs::File;
+use std::path::Path;
 
 use discord::Discord;
 use discord::model::Event;
-use std::env;
+
+use config::Config;
+pub use errors::*;
+
 
 fn main() {
-    // Log in to Discord using a bot token from the environment
-    let discord = Discord::from_bot_token(
-        &env::var("DISCORD_TOKEN").expect("Expected token"),
-    ).expect("login failed");
+    if let Err(ref error) = run() {
+        eprintln!("Botto-chan is an airhead! She fell over her own feet >.<");
+        eprintln!("{}", error);
 
-    // Establish and use a websocket connection
-    let (mut connection, _) = discord.connect().expect("connect failed");
+        if let Some(backtrace) = error.backtrace() {
+            eprintln!("Backtrace: {:?}", backtrace);
+        }
+
+        ::std::process::exit(1);
+    }
+}
+
+fn run() -> Result<()> {
+    let config = Config::new(Path::new("./config.ron"))?;
+    let discord = Discord::from_bot_token(config.token)?;
+    let (mut connection, _) = discord.connect()?;
+
     println!("Ready.");
+
     loop {
         match connection.recv_event() {
             Ok(Event::MessageCreate(message)) => {
