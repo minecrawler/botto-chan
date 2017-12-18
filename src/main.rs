@@ -14,7 +14,7 @@ use std::fs::OpenOptions;
 use std::path::Path;
 
 use discord::Discord;
-use discord::model::Event;
+use discord::model::{Event, MessageType};
 use slog::{Drain, Logger};
 use slog_async::Async;
 use slog_term::{FullFormat, PlainDecorator};
@@ -64,8 +64,18 @@ fn run(logger: &Logger) -> Result<()> {
     loop {
         match connection.recv_event() {
             Ok(Event::MessageCreate(message)) => {
-                if Err(e) = Command::interpret(message) {
+                if message.kind != MessageType.Regular {
+                    continue;
+                }
+
+                let int_res = Command::interpret(message.author.name, message.content));
+
+                if Err(e) = int_res {
                     break Err(e)
+                }
+
+                if Ok(Some(msg)) = int_res {
+                    discord.send_message(message.channel_id, msg.to_str(), "", false)?;
                 }
             }
             Ok(_) => {}
